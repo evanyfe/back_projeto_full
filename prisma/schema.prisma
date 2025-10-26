@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int           @id @default(autoincrement())
+  name       String
+  email      String        @unique
+  createdAt  DateTime      @default(now())
+  products   UserProduct[]
+}
+
+model Product {
+  id         Int               @id @default(autoincrement())
+  name       String
+  price      Decimal           @db.Decimal(10,2)
+  barcode    String            @unique      // novo: código de barras
+  description String                         // novo: descrição
+  quantity   Int               @default(0)  // novo: estoque
+  category   String                          // novo: categoria
+  expiry     DateTime?                       // novo: validade (opcional)
+  imageUrl   String?                         // novo: imagem (opcional)
+  createdAt  DateTime          @default(now())
+  users      UserProduct[]
+  suppliers  SupplierProduct[]
+}
+
+model UserProduct {
+  userId     Int
+  productId  Int
+  assignedAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@index([productId])
+}
+
+model Supplier {
+  id          Int               @id @default(autoincrement())
+  name        String
+  cnpj        String            @unique      // novo: CNPJ obrigatório e único
+  address     String                           // novo
+  phone       String                           // novo
+  email       String                           // novo (não-único)
+  mainContact String                           // novo: contato principal
+  createdAt   DateTime          @default(now())
+  products    SupplierProduct[]
+}
+
+model SupplierProduct {
+  supplierId   Int
+  productId    Int
+  price        Decimal?  @db.Decimal(10,2)
+  leadTimeDays Int?
+  createdAt    DateTime  @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, productId])
+  @@index([productId])
+}
