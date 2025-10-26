@@ -12,30 +12,26 @@ const app = express();
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ??
   "http://localhost:5173,http://127.0.0.1:5173,https://tangerine-pony-0d5265.netlify.app"
-)
-  .split(",")
-  .map(s => s.trim());
+).split(",").map(s => s.trim());
 
-app.use((req, res, next) => {
+app.use((_, res, next) => {
   res.setHeader("Vary", "Origin");
   next();
 });
 
-app.use(
-  cors({
-    origin(origin, cb) {
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error(`CORS: origin não permitido: ${origin}`));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: false,
-    optionsSuccessStatus: 204,
-  })
-);
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // Postman/curl
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS: origin não permitido: ${origin}`));
+  },
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+  credentials: false,
+  optionsSuccessStatus: 204,
+}));
 
-app.options("*", cors());
+// ❌ REMOVIDO: app.options("*", cors());  (quebra no Express 5)
 
 app.use(express.json());
 
@@ -49,7 +45,6 @@ app.post("/users/:userId/products/:productId", async (req, res) => {
   try {
     const userId = Number(req.params.userId);
     const productId = Number(req.params.productId);
-
     await prisma.userProduct.create({ data: { userId, productId } });
     res.status(201).json({ message: "Produto vinculado ao usuário" });
   } catch (e: any) {
